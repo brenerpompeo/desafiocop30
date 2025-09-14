@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desafio COP30</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* --- ESTILOS GLOBAIS E VARIÁVEIS --- */
+        :root {
+            --gc-blue: #022e50;
+            --gc-blue-darker: #011a30;
+            --text-light: #f0f8ff;
+            --text-muted: #b0c4de;
+            --accent: #34d399;
+            --accent-dark: #2aa879;
+            --ok: #10b981;
+            --err: #f43f5e;
+            --bg-glass: rgba(10, 30, 50, 0.2);
+            --border-glass: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--gc-blue);
+            color: var(--text-light);
+            overflow: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background-image: url('https://images.unsplash.com/photo-1596249514652-322472bdf42b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(2, 46, 80, 0.85);
+            backdrop-filter: blur(5px);
+        }
+
+        /* --- ESTILOS DOS PAINÉIS (TELAS) --- */
+        .panel {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 2rem 80px 2rem; /* Espaço para footer */
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.95);
+            transition: opacity 0.4s ease, visibility 0.4s ease, transform 0.4s ease;
+            z-index: 10;
+        }
+
+        .panel.active {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1);
+        }
+
+        .content-card {
+            width: 100%;
+            max-width: 500px;
+            max-height: 100%;
+            overflow-y: auto;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: 20px;
+            padding: 2rem;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        /* Scrollbar customizada */
+        .content-card::-webkit-scrollbar {
+            width: 8px;
+        }
+        .content-card::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .content-card::-webkit-scrollbar-thumb {
+            background-color: var(--border-glass);
+            border-radius: 20px;
+            border: 3px solid transparent;
+        }
+
+        /* --- RODAPÉ GLOBAL --- */
+        .app-footer {
+            position: fixed; /* Fixado na viewport */
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            pointer-events: none; /* Evita que intercepte cliques */
+        }
+        .app-footer img {
+            height: 35px;
+            opacity: 0.7;
+            max-width: 90vw;
+        }
+
+
+        /* --- ELEMENTOS DE UI REUTILIZÁVEIS --- */
+        .btn {
+            font-family: 'Roboto', sans-serif;
+            padding: 1rem 1.5rem;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 700;
+            transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            color: var(--gc-blue-darker);
+            box-shadow: 0 4px 15px rgba(52, 211, 153, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-dark);
+        }
+        
+        .btn-primary:disabled {
+            background-color: #555;
+            color: #999;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-glass {
+            background: var(--bg-glass);
+            color: var(--text-light);
+            border: 1px solid var(--border-glass);
+            backdrop-filter: blur(10px);
+            width: 100%;
+            padding: 1.2rem;
+            border-radius: 15px;
+            text-align: left;
+        }
+        
+        .btn:active, .btn-glass:active, .icon-btn:active {
+            transform: scale(0.95);
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.5rem;
+            transition: color 0.2s, transform 0.2s;
+        }
+        
+        .icon-btn:hover {
+            color: var(--text-light);
+        }
+
+        /* --- TELA 1: SPLASH SCREEN (REFINADA) --- */
+        #splash-screen {
+            text-align: center;
+        }
+
+        .splash-content-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-around;
+            height: 80vh;
+            max-height: 600px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .cop30-logo-splash {
+            width: 60%;
+            max-width: 250px;
+            animation: fadeIn 1s ease-out;
+        }
+
+        .splash-title {
+            margin: 1rem 0;
+        }
+
+        .splash-title h1 {
+            font-size: 2rem;
+            font-weight: 400;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            animation: fadeIn 1.5s ease-out;
+        }
+
+        .splash-title .logo-cop {
+            font-size: clamp(4rem, 18vw, 7rem);
+            font-weight: 900;
+            color: var(--accent);
+            margin: -1rem 0 1rem;
+            letter-spacing: -3px;
+            text-shadow: 0 0 20px rgba(52, 211, 153, 0.6);
+            animation: fadeIn 2s ease-out;
+        }
+        
+        .btn-start {
+            background-color: var(--text-light);
+            color: var(--gc-blue);
+            padding: 1.2rem 3rem;
+            animation: fadeIn 2.5s ease-out;
+            box-shadow: 0 4px 20px rgba(240, 248, 255, 0.25);
+        }
+        .btn-start:hover {
+            background-color: #e0e8ef;
+        }
+
+        /* --- TELA 2: MENU DE TEMÁTICAS --- */
+        .menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .menu-header h2 {
+            font-size: 1.8rem;
+        }
+        #themes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            width: 100%;
+        }
+        .theme-btn {
+            display: block;
+        }
+        .theme-btn span {
+            font-size: 0.8rem;
+            color: var(--accent);
+            font-weight: 700;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+        .theme-btn p {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        .theme-btn small {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* --- TELA 3: QUIZ --- */
+        .quiz-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background-color: var(--border-glass);
+            border-radius: 4px;
+            margin: 0.5rem 0;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: var(--accent);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        #question-counter {
+            text-align: center;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        
+        #question-text {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        #options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .option-btn {
+            transition: background-color 0.3s, border-color 0.3s, opacity 0.3s;
+        }
+
+        .option-btn.correct {
+            background-color: var(--ok);
+            border-color: var(--ok);
+            color: white;
+            animation: pulse-correct 0.5s ease;
+        }
+
+        .option-btn.incorrect {
+            background-color: var(--err);
+            border-color: var(--err);
+            color: white;
+            animation: shake 0.5s ease;
+        }
+
+        .option-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .option-btn.disabled:not(.correct) {
+            background: var(--bg-glass);
+            border-color: var(--border-glass);
+            color: var(--text-light);
+        }
+
+        /* --- TELA 4: RESULTADO FINAL --- */
+        #result-screen .content-card {
+            text-align: center;
+        }
+
+        .score-circle {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            margin: 1rem auto;
+        }
+        .score-circle svg {
+            width: 150px;
+            height: 150px;
+            transform: rotate(-90deg);
+        }
+        .score-circle circle {
+            fill: none;
+            stroke-width: 12;
+        }
+        .score-circle .bg-circle {
+            stroke: var(--border-glass);
+        }
+        .score-circle .progress-circle {
+            stroke: var(--accent);
+            stroke-dasharray: 409;
+            stroke-dashoffset: 409;
+            transition: stroke-dashoffset 1s ease-out;
+            stroke-linecap: round;
+        }
+
+        .score-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        #final-score {
+            font-size: 3rem;
+            font-weight: 900;
+        }
+        .score-text span {
+            display: block;
+            font-size: 1rem;
+            color: var(--text-muted);
+        }
+        
+        #video-container {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background-color: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            border: 1px solid var(--border-glass);
+        }
+        
+        #video-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* --- TELA 5: RANKING --- */
+        #ranking-list {
+            list-style: none;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        #ranking-list li {
+            display: flex;
+            align-items: center;
+            background: var(--bg-glass);
+            padding: 1rem;
+            border-radius: 15px;
+            border: 1px solid var(--border-glass);
+        }
+        .rank-pos {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--text-muted);
+            width: 40px;
+            text-align: center;
+        }
+        .rank-info {
+            flex-grow: 1;
+        }
+        .rank-info p {
+            font-weight: 500;
+        }
+        .rank-info small {
+            color: var(--text-muted);
+        }
+        .rank-score {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--accent);
+        }
+
+        /* --- MODAL DE CONFIRMAÇÃO --- */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: var(--gc-blue-darker);
+            padding: 2rem;
+            border-radius: 20px;
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid var(--border-glass);
+            transform: scale(0.9);
+            transition: transform 0.3s;
+        }
+        
+        .modal.active .modal-content {
+            transform: scale(1);
+        }
+        
+        .modal-content h3 {
+            margin-bottom: 1rem;
+        }
+        
+        .modal-content p {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        
+        .btn-secondary {
+            background: var(--bg-glass);
+            color: var(--text-light);
+        }
+
+        /* --- ANIMAÇÕES --- */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse-correct {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <div class="overlay"></div>
+
+        <!-- TELA 1: Splash Screen (Layout Corrigido) -->
+        <div id="splash-screen" class="panel active">
+            <div class="splash-content-wrapper">
+                <img src="https://cop30.pactoglobal.org.br/wp-content/uploads/2024/11/logo_cop.png" alt="Logo Pacto Rumo à COP30" class="cop30-logo-splash">
+                <div class="splash-title">
+                    <h1>DESAFIO</h1>
+                    <h2 class="logo-cop">COP30</h2>
+                </div>
+                <button class="btn btn-start">Toque para começar</button>
+            </div>
+        </div>
+
+        <!-- TELA 2: Menu de Temáticas -->
+        <div id="menu-screen" class="panel">
+            <div class="content-card">
+                <header class="menu-header">
+                    <h2>Escolha um Tema</h2>
+                    <div>
+                        <button id="home-btn" class="icon-btn" aria-label="Voltar à tela inicial">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                        </button>
+                    </div>
+                </header>
+                <div id="themes-list">
+                    <!-- Temas serão injetados pelo JavaScript -->
+                </div>
+                <button id="show-ranking-btn" class="btn btn-primary">Ver Ranking</button>
+            </div>
+        </div>
+        
+        <!-- TELA 3: Quiz -->
+        <div id="quiz-screen" class="panel">
+             <div class="content-card">
+                <header class="quiz-header">
+                     <button id="back-to-menu-btn" class="icon-btn" aria-label="Voltar ao menu">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                     </button>
+                     <div class="text-center">
+                        <h3 id="quiz-theme-title">Nome do Tema</h3>
+                        <p id="question-counter" class="text-sm text-muted">Pergunta 1 de 6</p>
+                    </div>
+                     <div style="width: 24px;"></div> <!-- Espaçador -->
+                </header>
+                <div id="progress-bar-container">
+                    <div id="progress-bar"></div>
+                </div>
+                <p id="question-text">O que significa a sigla COP e em qual cidade brasileira será a COP30?</p>
+                <div id="options-container">
+                    <!-- Opções injetadas pelo JavaScript -->
+                </div>
+                <button id="next-question-btn" class="btn btn-primary" disabled>Avançar</button>
+            </div>
+        </div>
+
+        <!-- TELA 4: Resultado Final -->
+        <div id="result-screen" class="panel">
+            <div class="content-card">
+                <h2>Resultado Final</h2>
+                <p id="result-theme-title" class="text-muted">A Visão Estratégica</p>
+                <div class="score-circle">
+                    <svg>
+                        <circle class="bg-circle" cx="75" cy="75" r="65"></circle>
+                        <circle id="score-progress-circle" class="progress-circle" cx="75" cy="75" r="65"></circle>
+                    </svg>
+                    <div class="score-text">
+                        <p id="final-score">0</p>
+                        <span>pontos</span>
+                    </div>
+                </div>
+                <h3>Assista à resposta dos especialistas!</h3>
+                <div id="video-container">
+                    <iframe id="result-video" src="" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                </div>
+                 <button id="back-to-menu-from-result-btn" class="btn btn-primary">Voltar ao Menu</button>
+            </div>
+        </div>
+
+        <!-- TELA 5: Ranking -->
+        <div id="ranking-screen" class="panel">
+            <div class="content-card">
+                <header class="menu-header">
+                    <button id="back-to-menu-from-ranking-btn" class="icon-btn" aria-label="Voltar ao menu">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                     </button>
+                    <h2>Ranking</h2>
+                    <button id="reset-ranking-btn" class="icon-btn" aria-label="Resetar Ranking">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                    </button>
+                </header>
+                <ul id="ranking-list">
+                    <!-- Ranking injetado pelo JavaScript -->
+                </ul>
+            </div>
+        </div>
+        
+        <footer class="app-footer">
+            <!-- Logo Corrigido -->
+            <img src="https://www.pactoglobal.org.br/wp-content/uploads/2025/09/Brazil_logo_translation_white.png" alt="Logo Pacto Global da ONU - Rede Brasil">
+        </footer>
+    </div>
+    
+    <!-- MODAL DE CONFIRMAÇÃO -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content">
+            <h3>Atenção</h3>
+            <p>Você tem certeza que deseja zerar toda a sua pontuação? Esta ação não pode ser desfeita.</p>
+            <div class="modal-buttons">
+                <button id="cancel-reset-btn" class="btn btn-secondary">Cancelar</button>
+                <button id="confirm-reset-btn" class="btn btn-primary" style="background-color: var(--err);">Sim, Zerar</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- BANCO DE DADOS DO QUIZ ---
+    // OBS: Os IDs dos vídeos do YouTube devem ser substituídos em 'videoUrl'.
+    const quizData = [
+        {
+            theme: "A Visão Estratégica",
+            influencer: "Gleice Damasceno",
+            videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ", // Substituir ID do vídeo
+            questions: [
+                { q: "O que significa a sigla COP e em qual cidade brasileira será a COP30?", o: ["Congresso das Políticas, em São Paulo", "Conferência das Partes, em Belém do Pará", "Comitê de Organizações, no Rio de Janeiro", "Cúpula de Operações Planetárias, em Brasília"], a: 1 },
+                { q: "Qual a importância da COP30 ser realizada no Brasil?", o: ["Apenas para aumentar o turismo na região amazônica.", "Porque o Brasil possui o maior número de soluções em escala para a crise climática e o evento destaca a Amazônia.", "Para que o Brasil possa assumir a liderança política global isoladamente.", "Porque é a primeira vez que uma COP acontece no hemisfério sul."], a: 1 },
+                { q: "Qual a importância da COP30 para o setor privado?", o: ["Apenas para obter novas linhas de crédito e financiamento internacional.", "Para cumprir uma obrigação regulatória imposta pela ONU.", "Porque a estratégia de desenvolvimento econômico sustentável deve integrar os pilares social e ambiental.", "Para focar exclusivamente em marketing verde e melhorar a imagem das empresas."], a: 2 },
+                { q: "Além de soluções climáticas, o que mais a COP na Amazônia oferece ao mundo?", o: ["Funciona como um exemplo de colaboração entre diferentes setores da sociedade.", "Apenas um palco para discussões políticas sem efeito prático.", "Uma oportunidade de investimento exclusivo para empresas estrangeiras.", "A criação de um novo bloco econômico focado na Amazônia."], a: 0 },
+                { q: "Segundo a ONU, qual deve ser o primeiro passo de uma empresa rumo à sustentabilidade?", o: ["Investir em grandes projetos de marketing e publicidade.", "Doar para uma causa ambiental e divulgar nas redes sociais.", "'Olhar para dentro' e garantir condições de trabalho justas e inclusivas.", "Mudar a embalagem de um produto para parecer mais 'verde'."], a: 2 },
+                { q: "Qual o risco para as empresas que ficam na 'zona de conforto' e não se adaptam à agenda climática e social?", o: ["Nenhum, desde que continuem sendo lucrativas.", "Podem perder relevância e ficar de fora das transformações que o país precisa.", "Apenas o risco de receber multas leves do governo.", "O risco de perder seguidores nas redes sociais."], a: 1 }
+            ]
+        },
+        {
+            theme: "Justiça Climática e Urgência",
+            influencer: "Isabelle Nogueira",
+            videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ", // Substituir ID do vídeo
+            questions: [
+                 { q: "Qual é o principal papel de uma organização como o Pacto Global na COP30?", o: ["Agrupar o setor privado e lembrá-lo de suas responsabilidades e do cronograma.", "Organizar a logística e os painéis do evento.", "Fiscalizar as decisões tomadas pelos governos.", "Criar novas leis ambientais para o Brasil."], a: 0 },
+                 { q: "O que a 'década final' para a Agenda 2030 representa?", o: ["Que a maioria das metas já foi cumprida e estamos nos detalhes finais.", "Um alerta de que estamos atrasados e precisamos acelerar as ações urgentemente.", "Um período de comemoração das conquistas da década passada.", "Que a agenda será encerrada em 2030, com ou sem o cumprimento das metas."], a: 1 },
+                 { q: "Por que é fundamental conectar a crise climática com pautas de diversidade e direitos humanos?", o: ["Porque essa conexão atrai mais investimentos para as empresas.", "Apenas porque é uma exigência dos acordos internacionais.", "Porque as soluções sustentáveis acabam beneficiando apenas os mais ricos.", "Porque as tragédias climáticas impactam de forma desproporcional as populações das periferias e grupos minorizados."], a: 3 },
+                 { q: "Quem são as pessoas mais impactadas pelas mudanças climáticas, na visão de Monique Evelle?", o: ["Os grandes empresários e bilionários que vivem no litoral.", "As populações das periferias, que ela chama de 'novos centros urbanos'.", "Os moradores de grandes centros, independentemente da classe social.", "Os cientistas e pesquisadores que estudam o clima."], a: 1 },
+                 { q: "Monique Evelle explica que as tragédias climáticas afetam de forma desproporcional populações específicas, como as que vivem nas periferias. Que nome se dá a esse fenômeno?", o: ["Gentrificação Climática.", "Injustiça Social.", "Racismo Ambiental.", "Segregação Urbana."], a: 2 },
+                 { q: "O que a metáfora 'o barco do bilionário também está afundando' significa no contexto da crise climática?", o: ["Que a crise climática é um problema que afeta apenas a economia dos mais ricos.", "Que a tecnologia dos mais ricos não é suficiente para salvá-los.", "Que, no fim, os impactos da crise afetarão a todos, sem exceção de classe social.", "Que o foco da solução deve estar apenas em proteger os mais ricos."], a: 2 }
+            ]
+        },
+        {
+            theme: "A Nova Economia e Soluções",
+            influencer: "Nataly Neri",
+            videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ", // Substituir ID do vídeo
+            questions: [
+                { q: "Qual a principal diferença entre a 'Economia Verde' e a 'Economia Marrom' (tradicional)?", o: ["A Economia Verde foca em lucro a qualquer custo, enquanto a Marrom foca no social.", "A Economia Verde é baseada em regeneração e abundância, enquanto a Marrom é baseada em extração e escassez.", "A Economia Verde só se aplica a empresas de tecnologia, e a Marrom a indústrias.", "Não há diferença, são apenas termos de marketing."], a: 1 },
+                { q: "De forma simples, o que significa 'descarbonizar' a economia?", o: ["Aumentar os impostos sobre o carbono para as empresas.", "Mover de um modelo de 'pegar, usar e descartar' para um modelo circular e regenerativo.", "Substituir todos os trabalhadores por robôs que não emitem carbono.", "Parar completamente o crescimento econômico do país."], a: 1 },
+                { q: "Para as empresas, a transição para uma economia de baixo carbono é...", o: ["Um tema do futuro, que só precisa ser pensado depois de 2030.", "Apenas uma questão de marketing para atrair clientes jovens.", "Um tema do presente, essencial para a sobrevivência dos negócios.", "Uma obrigação que gera apenas custos e nenhum benefício."], a: 2 },
+                { q: "O que é o biometano, uma das soluções de descarbonização para o transporte?", o: ["Um tipo de gasolina com menos aditivos químicos.", "Um combustível fóssil extraído de novas fontes.", "Um combustível renovável gerado a partir de resíduos (biomassa), fechando um ciclo.", "Uma bateria elétrica líquida para caminhões."], a: 2 },
+                { q: "Por que o biometano é um exemplo de economia circular?", o: ["Porque ele é mais barato que o diesel.", "Porque ele permite que uma empresa transforme seu próprio resíduo em combustível para sua frota.", "Porque o seu uso gera créditos de carbono que podem ser vendidos.", "Porque sua produção depende da importação de materiais da Europa."], a: 1 },
+                { q: "O que a COP30 representa para empresas já engajadas com a pauta climática?", o: ["Uma obrigação burocrática para apresentar relatórios anuais.", "Apenas uma oportunidade para fazer networking com políticos.", "Um momento para tirar as metas do papel e acelerar a implementação de soluções.", "Uma pausa nas metas de sustentabilidade para focar em outras prioridades."], a: 2 }
+            ]
+        },
+        {
+            theme: "Engajamento e Comunicação",
+            influencer: "Beta Boechat",
+            videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ", // Substituir ID do vídeo
+            questions: [
+                { q: "Qual é a principal função da comunicação na pauta da sustentabilidade?", o: ["Apenas para fazer propaganda das empresas.", "Dar acesso à sociedade sobre o que está sendo feito, com credibilidade.", "Esconder os problemas e falar só das coisas boas.", "Criar campanhas de marketing somente durante a COP30."], a: 1 },
+                { q: "Segundo Rosa Vanzella, quando a comunicação sobre a COP30 é mais importante?", o: ["Apenas durante o mês do evento.", "Somente depois que o evento acabar.", "Principalmente antes do evento começar.", "Antes, durante e, principalmente, no pós-evento para mostrar a solidez das ações."], a: 3 },
+                { q: "Qual é o elemento mais importante para a comunicação na sustentabilidade?", o: ["Ser a campanha mais criativa e bonita.", "Ter o maior orçamento de marketing.", "Ter credibilidade e ser autêntica.", "Ser a mais viral nas redes sociais."], a: 2 },
+                { q: "A iniciativa 'Movimento Reciclo' da C&A, que transforma roupas usadas em novas peças, é um exemplo prático de quê?", o: ["Um programa para vender roupas mais caro.", "Apenas uma campanha de marketing para redes sociais.", "Economia circular, que depende do engajamento dos consumidores.", "Uma forma de descartar roupas velhas."], a: 2 },
+                { q: "A transformação para um futuro mais sustentável depende principalmente de quem?", o: ["Apenas dos governos e das leis.", "Apenas das grandes empresas.", "Do engajamento de toda a sociedade, através de mudanças de comportamento.", "Apenas de países desenvolvidos."], a: 2 },
+                { q: "Qual é o resultado esperado quando as pessoas se informam e entendem os impactos da crise climática?", o: ["Ter mais assuntos para conversar com amigos.", "Que elas mudem seus comportamentos e se tornem agentes de mudança.", "Apenas criticar as empresas nas redes sociais.", "Esperar que a tecnologia resolva tudo sozinha."], a: 1 }
+            ]
+        },
+        {
+            theme: "Saberes e Responsabilidades",
+            influencer: "Brenër Pompêo", // Nome atualizado aqui
+            videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ", // Substituir ID do vídeo
+            questions: [
+                { q: "Do ponto de vista indígena, qual é a principal prioridade que deve guiar o progresso?", o: ["O lucro das grandes corporações.", "A proteção da vida e o cuidado com a Mãe Terra.", "A exploração máxima dos recursos naturais.", "A urbanização completa de todas as áreas."], a: 1 },
+                { q: "Qual é a principal crítica que a ciberativista Bekoy faz sobre grandes eventos como a COP?", o: ["Dão visibilidade aos povos indígenas, mas pouca participação real nas decisões.", "São muito longos e caros.", "Focam demais em tecnologia e não o suficiente em política.", "Acontecem muito longe dos territórios indígenas."], a: 0 },
+                { q: "O conhecimento dos povos indígenas sobre como preservar a natureza vem principalmente de onde?", o: ["De estudos acadêmicos e universidades.", "Da sabedoria ancestral e do cuidado prático com a Mãe Terra.", "De organizações ambientais internacionais.", "De programas de treinamento do governo."], a: 1 },
+                { q: "Além de gerar energia, como uma empresa como a Itaipu está contribuindo para a COP30 em Belém?", o: ["Oferecendo cursos e apoiando obras de infraestrutura, como saneamento.", "Patrocinando shows e eventos culturais.", "Financiando as viagens de todas as delegações.", "Construindo um novo aeroporto na cidade."], a: 0 },
+                { q: "Para a Itaipu, por que conservar o ecossistema ao redor da hidrelétrica é uma boa estratégia de negócio?", o: ["É apenas para melhorar a imagem da empresa.", "Porque garante a qualidade da água e, consequentemente, a segurança energética.", "Somente para criar uma paisagem bonita para o turismo.", "Para poder aumentar o preço da energia."], a: 1 },
+                { q: "O que conecta a ação de uma grande empresa como a Itaipu e a luta dos povos indígenas?", o: ["Ambos buscam financiamento internacional para seus projetos.", "Apenas o foco exclusivo na região amazônica.", "A ideia de que cuidar da natureza é fundamental para o futuro, seja para os negócios ou para a própria vida.", "Ambos são contra qualquer tipo de crescimento econômico."], a: 2 }
+            ]
+        }
+    ];
+
+    // --- VARIÁVEIS DE ESTADO ---
+    let currentThemeIndex = 0;
+    let currentQuestionIndex = 0;
+    let currentScore = 0;
+    let answerSelected = false;
+    const SCORES_KEY = 'cop30_scores';
+
+    // --- ELEMENTOS DO DOM ---
+    const panels = document.querySelectorAll('.panel');
+    const splashScreen = document.getElementById('splash-screen');
+    const menuScreen = document.getElementById('menu-screen');
+    const quizScreen = document.getElementById('quiz-screen');
+    const resultScreen = document.getElementById('result-screen');
+    const rankingScreen = document.getElementById('ranking-screen');
+    const themesList = document.getElementById('themes-list');
+    const nextQuestionBtn = document.getElementById('next-question-btn');
+    const optionsContainer = document.getElementById('options-container');
+    const confirmModal = document.getElementById('confirm-modal');
+    
+    // --- FUNÇÕES DE NAVEGAÇÃO ---
+    const showPanel = (panelId) => {
+        panels.forEach(p => p.classList.remove('active'));
+        document.getElementById(panelId).classList.add('active');
+    };
+
+    // --- FUNÇÕES DE LÓGICA DO QUIZ ---
+    const startQuiz = (themeIndex) => {
+        currentThemeIndex = themeIndex;
+        currentQuestionIndex = 0;
+        currentScore = 0;
+        answerSelected = false;
+        loadQuestion();
+        showPanel('quiz-screen');
+    };
+
+    const loadQuestion = () => {
+        answerSelected = false;
+        nextQuestionBtn.disabled = true;
+        const themeData = quizData[currentThemeIndex];
+        const questionData = themeData.questions[currentQuestionIndex];
+
+        document.getElementById('quiz-theme-title').innerText = themeData.theme;
+        document.getElementById('question-counter').innerText = `Pergunta ${currentQuestionIndex + 1} de ${themeData.questions.length}`;
+        document.getElementById('question-text').innerText = questionData.q;
+        
+        const progress = ((currentQuestionIndex) / themeData.questions.length) * 100;
+        document.getElementById('progress-bar').style.width = `${progress}%`;
+
+        optionsContainer.innerHTML = '';
+        questionData.o.forEach((optionText, index) => {
+            const button = document.createElement('button');
+            button.className = 'btn btn-glass option-btn';
+            button.innerText = optionText;
+            button.onclick = () => selectAnswer(index, questionData.a);
+            optionsContainer.appendChild(button);
+        });
+    };
+
+    const selectAnswer = (selectedIndex, correctIndex) => {
+        if (answerSelected) return;
+        answerSelected = true;
+
+        const optionButtons = optionsContainer.querySelectorAll('.option-btn');
+        optionButtons.forEach((btn, index) => {
+            btn.classList.add('disabled');
+            if (index === selectedIndex) {
+                if (selectedIndex === correctIndex) {
+                    btn.classList.add('correct');
+                    currentScore += 10; // Adiciona 10 pontos para acerto
+                } else {
+                    btn.classList.add('incorrect'); // 0 pontos para erro (score não é incrementado)
+                }
+            }
+            // Garante que a resposta correta sempre seja destacada em verde
+            if (index === correctIndex && selectedIndex !== correctIndex) {
+                btn.classList.add('correct');
+            }
+        });
+
+        nextQuestionBtn.disabled = false;
+    };
+
+    const nextQuestion = () => {
+        currentQuestionIndex++;
+        const themeData = quizData[currentThemeIndex];
+        if (currentQuestionIndex < themeData.questions.length) {
+            loadQuestion();
+        } else {
+            finishQuiz();
+        }
+    };
+    
+    const finishQuiz = () => {
+        saveScore(currentThemeIndex, currentScore);
+        showResult();
+    };
+    
+    // --- FUNÇÕES DE RESULTADO E RANKING ---
+    const showResult = () => {
+        const themeData = quizData[currentThemeIndex];
+        document.getElementById('result-theme-title').innerText = themeData.theme;
+        document.getElementById('final-score').innerText = currentScore;
+        document.getElementById('result-video').src = themeData.videoUrl;
+        
+        // Animação do círculo de pontuação
+        const circle = document.getElementById('score-progress-circle');
+        const radius = circle.r.baseVal.value;
+        const circumference = 2 * Math.PI * radius;
+        const maxScore = themeData.questions.length * 10;
+        const offset = circumference - (currentScore / maxScore) * circumference;
+        
+        circle.style.strokeDasharray = circumference;
+        circle.style.strokeDashoffset = circumference;
+        setTimeout(() => {
+             circle.style.strokeDashoffset = offset;
+        }, 100);
+
+        showPanel('result-screen');
+    };
+    
+    const loadRanking = () => {
+        const scores = getScores();
+        const rankingList = document.getElementById('ranking-list');
+        rankingList.innerHTML = '';
+        
+        const sortedScores = quizData.map((theme, index) => ({
+            theme: theme.theme,
+            influencer: theme.influencer,
+            score: scores[index] || 0
+        })).sort((a,b) => b.score - a.score);
+        
+        if (sortedScores.every(item => item.score === 0)) {
+            rankingList.innerHTML = `<p style="text-align: center; color: var(--text-muted);">Nenhuma pontuação registrada ainda. Jogue para aparecer no ranking!</p>`;
+        } else {
+            sortedScores.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span class="rank-pos">${index + 1}</span>
+                    <div class="rank-info">
+                        <p>${item.theme}</p>
+                        <small>com ${item.influencer}</small>
+                    </div>
+                    <span class="rank-score">${item.score}</span>
+                `;
+                rankingList.appendChild(li);
+            });
+        }
+        showPanel('ranking-screen');
+    };
+    
+    // --- FUNÇÕES DO LOCALSTORAGE ---
+    const getScores = () => {
+        const scores = localStorage.getItem(SCORES_KEY);
+        return scores ? JSON.parse(scores) : {};
+    };
+    
+    const saveScore = (themeIndex, score) => {
+        const scores = getScores();
+        if (!scores[themeIndex] || score > scores[themeIndex]) {
+            scores[themeIndex] = score;
+            localStorage.setItem(SCORES_KEY, JSON.stringify(scores));
+        }
+    };
+    
+    const resetScores = () => {
+        localStorage.removeItem(SCORES_KEY);
+        loadRanking();
+    };
+
+    // --- INICIALIZAÇÃO E EVENT LISTENERS ---
+    const init = () => {
+        themesList.innerHTML = '';
+        quizData.forEach((theme, index) => {
+            const button = document.createElement('button');
+            button.className = 'btn btn-glass theme-btn';
+            button.innerHTML = `
+                <span>TEMÁTICA ${index + 1}</span>
+                <p>${theme.theme}</p>
+                <small>com ${theme.influencer}</small>
+            `;
+            button.onclick = () => startQuiz(index);
+            themesList.appendChild(button);
+        });
+    };
+    
+    // Navegação geral
+    document.querySelector('#splash-screen .btn-start').onclick = () => showPanel('menu-screen');
+    document.getElementById('home-btn').onclick = () => showPanel('splash-screen');
+    document.getElementById('back-to-menu-btn').onclick = () => showPanel('menu-screen');
+    document.getElementById('back-to-menu-from-result-btn').onclick = () => {
+        document.getElementById('result-video').src = ''; // Para o vídeo ao sair
+        showPanel('menu-screen');
+    };
+    document.getElementById('back-to-menu-from-ranking-btn').onclick = () => showPanel('menu-screen');
+    
+    // Lógica do Quiz
+    nextQuestionBtn.onclick = nextQuestion;
+    
+    // Lógica do Ranking
+    document.getElementById('show-ranking-btn').onclick = loadRanking;
+    document.getElementById('reset-ranking-btn').onclick = () => confirmModal.classList.add('active');
+    
+    // Lógica do Modal
+    document.getElementById('cancel-reset-btn').onclick = () => confirmModal.classList.remove('active');
+    document.getElementById('confirm-reset-btn').onclick = () => {
+        resetScores();
+        confirmModal.classList.remove('active');
+    };
+
+    init();
+});
+</script>
+
+</body>
+</html>
